@@ -1,165 +1,339 @@
 # AI Assistant Tool
 
-Date: 2026.03.26 | Author: https://github.com/jumphone/
+**Date:** 2026.03.26  
+**Author:** https://github.com/jumphone/  
+**Python:** 3.12+ required
 
-A command-line AI assistant supporting multiple interaction modes: basic chat, RAG retrieval, web search, and combined capabilities. Built with Moonshot AI's Kimi models.
+A command-line AI assistant supporting multiple interaction modes: basic chat, local document retrieval (RAG), web search, and combined capabilities. Built with Moonshot AI's Kimi models and FastAPI proxy for secure API key management.
 
-## Features
+---
 
-- **ai**: Basic AI chat with conversation history
-- **air**: AI chat with local document retrieval (RAG)
-- **aiw**: AI chat with web search capability
-- **aiwr**: AI chat with both web search and RAG
-- **ragindex**: Build FAISS vector store from local documents
+## Feature Matrix
+
+| Command | Mode | RAG | Web Search | Verbose Output | Description |
+|---------|------|-----|------------|----------------|-------------|
+| `ai` | Basic Chat | ❌ | ❌ | ✅ | Standard conversation with history |
+| `air` | AI + RAG | ✅ | ❌ | ✅ | Search local documents |
+| `aiw` | AI + Web | ❌ | ✅ | ✅ | Search internet |
+| `aiwr` | AI + Web + RAG | ✅ | ✅ | ✅ | Combined search |
+| `aiq` | Quiet Chat | ❌ | ❌ | ❌ | Non-streaming output |
+| `aiwq` | Quiet Web | ❌ | ✅ | ❌ | Non-streaming web search |
+| `ragindex` | Index Builder | - | - | - | Build FAISS vector store |
+
+---
 
 ## Installation
 
 ```bash
-# Python 3.12 required
+# Clone repository
+git clone <repository-url>
+cd ai-assistant
+
+# Install Python 3.12 dependencies
 pip install -r docs/requirements.txt
+
+# Verify installation
+python3 bin/ai.py --help  # Will prompt for API key on first run
 ```
+
+---
 
 ## Configuration
 
-### API Key Setup
+### Initial Setup
 
-First run will prompt for "ai-key". Users can input:
-- Real Moonshot API key (sk-...)
-- Password from host's `~/.ai/pkey.txt`
+On first run, the tool prompts for an "ai-key". You can provide:
 
-The tool validates against:
-1. `API_URL='https://api.moonshot.cn/v1'` (real endpoint)
-2. `PROXY_URL='http://127.0.0.1:5260/v1'` (local proxy)
+1. **Real Moonshot API key** (format: `sk-...`)
+2. **Proxy password** (from host's `~/.ai/pkey.txt`)
 
-Validated keys are stored in:
-- `~/.ai/key.txt` (real key)
-- `~/.ai/pkey.txt` (proxy password)
+The key is validated against two endpoints:
+- `API_URL='https://api.moonshot.cn/v1'` (real endpoint)
+- `PROXY_URL='http://127.0.0.1:5260/v1'` (local proxy)
 
-### Document Setup
+Validated credentials are stored in:
+- `~/.ai/key.txt` - Real API key (700 permissions)
+- `~/.ai/pkey.txt` - Proxy password (700 permissions)
 
-Place text/markdown files in `~/.ai/database/` for RAG. Supported extensions: `.txt`, `.md`
+### Directory Structure
 
-### Vector Store
+The tool creates `~/.ai/` with 700 permissions:
 
-Build index before using RAG features:
-
-```bash
-bin/ragindex.py
 ```
+~/.ai/
+├── bkg.txt              # System background rules
+├── key.txt              # Real API key
+├── pkey.txt             # Proxy password
+├── tmp/                 # Conversation history
+│   └── YYYYMMDD_tmp_ai_<user>.txt
+├── log/                 # Interaction logs
+│   └── YYYYMMDD_log_ai_<user>.txt
+├── database/            # RAG source documents (.txt, .md)
+└── vectorstore/         # FAISS index
+```
+
+### Background Rules
+
+Default system prompt (`src/prepare.py:DEFAULT_BKG`):
+
+```
+1. 只陈述真实的内容，不猜测、不编造。
+2. 不知道、不确定、没有把握的内容，直接说不知道，不要编造。
+3. 不虚构人名、地名、时间、数据、论文、文献、标题、作者、来源。
+4. 不夸张、不脑补、不美化。
+5. 如果需要引用，只引用真实存在的内容，不编造引用。
+6. 回答直接、无冗余的语气。
+7. 一定要回答，不可靠也给一个最可靠的结论。
+```
+
+---
 
 ## Usage
 
 ### Basic Chat
+
 ```bash
-bin/ai.py "Your question"
-bin/ai.py file.txt  # Include file content
+# Simple query
+bin/ai.py "What is Python?"
+
+# Include file content
+bin/ai.py document.txt "Summarize this"
+
+# Enable conversation history
+bin/ai.py usetmp
 ```
 
-### RAG Mode
+### RAG Mode (Local Documents)
+
 ```bash
-bin/air.py "question about your documents"
+# 1. Place documents in ~/.ai/database/
+cp my_notes.md ~/.ai/database/
+
+# 2. Build vector index
+bin/ragindex.py
+
+# 3. Query documents
+bin/air.py "What did I write about authentication?"
 ```
 
 ### Web Search Mode
+
 ```bash
-bin/aiw.py "current events question"
+# Current events and internet queries
+bin/aiw.py "Latest Python 3.12 features"
 ```
 
 ### Combined Mode
+
 ```bash
-bin/aiwr.py "complex question needing both"
+# Search both internet and local documents
+bin/aiwr.py "Compare cloud providers with my internal notes"
+```
+
+### Quiet Mode (Non-Streaming)
+
+```bash
+# For scripting and piping
+bin/aiq.py "Calculate 2+2" > result.txt
+bin/aiwq.py "Current Bitcoin price" | grep -i price
 ```
 
 ### Conversation Management
+
 ```bash
-bin/ai.py usetmp    # Enable history
-bin/ai.py cleantmp  # Reset history
-bin/ai.py stoptmp   # Disable history
+bin/ai.py usetmp     # Enable history for current day
+bin/ai.py cleantmp   # Reset history (remove and recreate)
+bin/ai.py stoptmp    # Disable history (delete tmp file)
 ```
 
 ### Proxy Server
+
 ```bash
-# Run FastAPI proxy for key protection
+# Start FastAPI proxy for key protection
 bash server.sh
+
 # Server runs at http://127.0.0.1:5260
+# Configure clients to use this endpoint
 ```
+
+---
+
+## Architecture
+
+### Key Functions
+
+- `loadBKG()` - Load system prompt and timestamp
+- `loadTMP()` - Load conversation history from `~/.ai/tmp/`
+- `loadNEW()` - Process CLI arguments (files or text)
+- `getResult()` - Standard streaming chat
+- `getResult_web()` - Chat with web search tool
+- `retrieve_rag()` - RAG retrieval with double-check
+- `build_vectorstore()` - FAISS index management
+
+### RAG Pipeline
+
+1. **Keyword Generation** (`RAG_KEYWORD_MODEL`): Extract search intent
+2. **Vector Retrieval**: FAISS similarity search (`VECTOR_K=10`)
+3. **Double-Check** (`RAG_CHECK_MODEL`): Verify relevance (temperature=0.0)
+4. **Answer Generation**: Combine references with user query
+
+### Web Search Integration
+
+Uses Moonshot's builtin `$web_search` tool (`src/util.py:chat()`). The tool is declared in each request and handles tool calls automatically.
+
+---
 
 ## File Structure
 
 ```
 .
-├── bin/                      # Executable scripts
-│   ├── ai.py                # Basic AI
-│   ├── air.py               # AI + RAG
-│   ├── aiw.py               # AI + Web
-│   ├── aiwr.py              # AI + Web + RAG
-│   └── ragindex.py          # Build vector store
+├── bin/                      # Executable entry points
+│   ├── ai.py                # Basic chat
+│   ├── air.py               # + RAG
+│   ├── aiw.py               # + Web
+│   ├── aiwr.py              # + Web + RAG
+│   ├── aiq.py               # Quiet mode
+│   ├── aiwq.py              # Quiet web
+│   └── ragindex.py          # Build index
 ├── mains/                    # Main logic modules
 │   ├── main_ai.py
 │   ├── main_air.py
 │   ├── main_aiw.py
 │   ├── main_aiwr.py
+│   ├── main_aiq.py
+│   ├── main_aiwq.py
 │   └── main_ragindex.py
-├── src/                      # Core modules
-│   ├── check.py             # API verification
-│   ├── config.py            # Configuration
-│   ├── safe.py              # Safe functions
-│   ├── prepare.py           # Initialization
-│   ├── rag.py               # RAG implementation
-│   ├── util.py              # Utilities
+├── src/                      # Core implementation
+│   ├── check.py             # API key validation
+│   ├── config.py            # Configuration constants
+│   ├── safe.py              # Secure password input
+│   ├── prepare.py           # Directory initialization
+│   ├── rag.py               # FAISS and embeddings
+│   ├── util.py              # Main utility functions
 │   └── server.py            # FastAPI proxy
 ├── docs/
 │   └── requirements.txt     # Python dependencies
-└── server.sh                # Server startup script
+└── server.sh                # Proxy startup script
 ```
 
-## Key Paths
+---
 
-- `~/.ai/`: Main configuration folder (700 permissions)
-- `~/.ai/bkg.txt`: System background rules
-- `~/.ai/tmp/`: Conversation history (daily files per user)
-- `~/.ai/log/`: Interaction logs (daily files per user)
-- `~/.ai/database/`: RAG source documents
-- `~/.ai/vectorstore/`: FAISS index
-- `~/.ai/key.txt`: Real API key
-- `~/.ai/pkey.txt`: Proxy password
+## Security Features
 
-## Models
+- **Key Protection**: Proxy server validates tokens before forwarding to real API
+- **File Permissions**: `~/.ai/` directory created with 700 permissions
+- **Secure Input**: Password masking with `getpass_star()` (`src/safe.py`)
+- **Key Storage**: Separate files for real key and proxy password
+- **No Key Exposure**: Client applications use proxy password, not real API key
 
-- **Chat**: `kimi-k2-thinking-turbo` (default, `BASIC_MODEL`)
-- **RAG Keyword**: `kimi-k2-turbo-preview` (`RAG_KEYWORD_MODEL`)
-- **RAG Check**: `kimi-k2-turbo-preview` (`RAG_CHECK_MODEL`)
-- **Embeddings**: Local HuggingFace model at `/home/toolkit/tools/ai_local_src/models/multilingual-model`
+### Proxy Server Details
 
-## Background Rules
+- **Endpoint**: `http://127.0.0.1:5260/v1`
+- **Validation**: Checks token against `PROXY_API_KEY` list
+- **Forwarding**: Injects real API key, strips sensitive headers
+- **Logging**: Prints request bodies and streaming responses to stdout
+- **CORS**: Not configured (intended for local use only)
 
-Default system prompt (`DEFAULT_BKG`):
-- Factual statements only
-- No speculation/fabrication
-- No invented references
-- Direct, concise responses
-- Must answer even when uncertain
+---
 
-## Technical Details
+## Configuration Reference
 
-- **RAG**: FAISS vector store with `CHUNK_SIZE=5000`, `CHUNK_OVERLAP=500`, `VECTOR_K=10`
-- **Web Search**: Moonshot's builtin `$web_search` tool
-- **History**: Stored in `~/.ai/tmp/YYYYMMDD_tmp_ai_<user>.txt`
-- **Logging**: Stored in `~/.ai/log/YYYYMMDD_log_ai_<user>.txt`
-- **Temperature**: `TEMPERATURE=0.3` (chat), `RAG_KEYWORD_TEMPERATURE=0.2`, `RAG_CHECK_TEMPERATURE=0.0`
-- **Proxy**: FastAPI server at port 5260 with token validation
+### Models (`src/config.py`)
 
-## Security Notes
+```python
+BASIC_MODEL = 'kimi-k2-thinking-turbo'  # Default chat model
+RAG_KEYWORD_MODEL = 'kimi-k2-turbo-preview'  # Search intent extraction
+RAG_CHECK_MODEL = 'kimi-k2-turbo-preview'  # Relevance verification
+```
 
-- Configuration folder has 700 permissions
-- Password input masked with asterisks (`getpass_star`)
-- Real API keys stored only in host account
-- Proxy server validates tokens before forwarding
-- Key files created with 700 permissions
+### RAG Parameters
+
+```python
+CHUNK_SIZE = 5000          # Document chunk size
+CHUNK_OVERLAP = 500        # Chunk overlap
+VECTOR_K = 10              # Retrieved chunks
+RAG_KEYWORD_TEMPERATURE = 0.2
+RAG_CHECK_TEMPERATURE = 0.0  # Deterministic checking
+```
+
+### Paths
+
+```python
+AI_FOLDER = '~/.ai/'
+RAG_SRC_DATABASE = '~/.ai/database/'
+RAG_SRC_VECTOR = '~/.ai/vectorstore/'
+SEARCH_MODEL_PATH = '/home/toolkit/tools/ai_local_src/models/multilingual-model'
+```
+
+---
+
+## Troubleshooting
+
+### "No sentence-transformers model found"
+
+The tool suppresses this warning via `warnings.filterwarnings()` and `sys.stderr` redirection in `src/rag.py:init_huggingface_embeddings()`. Ensure `SEARCH_MODEL_PATH` contains valid model files.
+
+### Key Validation Fails
+
+1. Check network connectivity to `API_URL` and `PROXY_URL`
+2. Verify key format (should start with `sk-`)
+3. Inspect `~/.ai/key.txt` and `~/.ai/pkey.txt` permissions
+4. Use `fast_verify_key()` in `src/safe.py` for manual testing
+
+### RAG Returns No Results
+
+1. Confirm documents in `~/.ai/database/` (`.txt` or `.md`)
+2. Rebuild index: `bin/ragindex.py`
+3. Check embedding model path: `SEARCH_MODEL_PATH`
+4. Verify `VECTOR_K` value isn't too small
+
+### History Not Saving
+
+1. Run `bin/ai.py usetmp` to create temp file
+2. Check `~/.ai/tmp/` permissions (should be 700)
+3. Verify `TMP_USE` is `True` in `src/prepare.py`
+
+### Proxy Server Errors
+
+1. Ensure port 5260 is available: `lsof -i :5260`
+2. Check `PROXY_KEY_FILE` exists and contains valid token
+3. Review server logs for request/response details
+
+---
+
+## Development
+
+### Adding New Commands
+
+1. Create `bin/newcmd.py` with shebang and import
+2. Add `mains/main_newcmd.py` with `run()` function
+3. Implement logic in `src/util.py` or new module
+4. Update feature matrix in this README
+
+### Modifying Models
+
+Edit `src/config.py:MODEL_LIST` and `BASIC_MODEL`. Changes apply immediately on next run.
+
+### Custom Embeddings
+
+Update `SEARCH_MODEL_PATH` in `src/config.py`. The tool expects a HuggingFace-compatible model.
+
+### Extending Proxy
+
+Modify `src/server.py:PROXY_API_KEY` to support multiple client tokens. Add routes as needed in the FastAPI app.
+
+---
 
 ## Requirements
 
-- Python 3.12
-- Moonshot AI API key
-- Local embedding model (for RAG)
-- CUDA libraries (optional, for GPU acceleration)
+See `docs/requirements.txt` for complete list. Key dependencies:
+
+- **AI/ML**: `torch==2.6.0`, `transformers==5.3.0`, `sentence-transformers==5.3.0`
+- **RAG**: `langchain==1.2.13`, `faiss-cpu==1.8.0`, `langchain-huggingface==1.2.1`
+- **API**: `openai==1.60.0`, `httpx==0.25.2`, `fastapi==0.135.2`
+- **Utilities**: `pydantic==2.12.5`, `python-dotenv==1.2.2`, `PyYAML==6.0.3`
+
+CUDA libraries are optional and included for GPU acceleration support.
+
+---
+

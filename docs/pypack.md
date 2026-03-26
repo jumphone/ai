@@ -23,7 +23,7 @@ h11                      0.16.0
 hf-xet                   1.4.2
 hnswlib                  0.8.0
 httpcore                 1.0.9
-httpx                    0.28.1
+httpx                    0.25.2
 httpx-sse                0.4.3
 huggingface_hub          1.8.0
 idna                     3.11
@@ -65,7 +65,7 @@ nvidia-cusparselt-cu12   0.6.2
 nvidia-nccl-cu12         2.21.5
 nvidia-nvjitlink-cu12    12.4.127
 nvidia-nvtx-cu12         12.4.127
-openai                   2.29.0
+openai                   1.60.0
 orjson                   3.11.7
 ormsgpack                1.12.2
 packaging                26.0
