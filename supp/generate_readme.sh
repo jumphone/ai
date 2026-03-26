@@ -1,1 +1,9 @@
-aiq docs/requirements.txt bin/ai.py bin/air.py bin/aiw.py bin/aiwr.py bin/keyenc.py bin/ragindex.py  mains/main_ai.py mains/main_air.py mains/main_aiw.py mains/main_aiwr.py mains/main_keyenc.py mains/main_ragindex.py  src/check.py src/config.py src/enc.py src/prepare.py src/rag.py src/util.py write a complete README.md file for this AI tool.  > README.md
+aiq docs/requirements.txt bin/ai.py \
+    bin/air.py bin/aiw.py bin/aiwr.py \
+    bin/ragindex.py  mains/main_ai.py \
+    mains/main_air.py mains/main_aiw.py \
+    mains/main_aiwr.py mains/main_ragindex.py \
+    src/check.py src/config.py src/safe.py \
+    src/prepare.py src/rag.py src/util.py \
+    src/server.py server.sh README.md \
+    write a complete README file for this AI tool.  > docs/README.md
