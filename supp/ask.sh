@@ -1,5 +1,5 @@
 
-aiw docs/requirements.txt bin/ai.py \
+ai docs/requirements.txt bin/ai.py \
     bin/air.py bin/aiw.py bin/aiwr.py \
     bin/aiq.py bin/aiwq.py  \
     bin/ragindex.py  mains/main_ai.py \
