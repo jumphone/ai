@@ -26,14 +26,14 @@ A command-line AI assistant supporting multiple interaction modes: basic chat, l
 
 ```bash
 # Clone repository
-git clone <repository-url>
-cd ai-assistant
+git clone https://github.com/jumphone/ai.git
+cd ai
 
 # Install Python 3.12 dependencies
 pip install -r docs/requirements.txt
 
 # Verify installation
-python3 bin/ai.py --help  # Will prompt for API key on first run
+python3 bin/ai.py who are you  # Will prompt for API key on first run
 ```
 
 ---
