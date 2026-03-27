@@ -1,7 +1,9 @@
 # AI Assistant Tool
 
-**Date:** 2026.03.27 
-**Author:** https://github.com/jumphone/  
+**Date:** 2026.03.27
+
+**Author:** https://github.com/jumphone/
+
 **Python:** 3.12+ required
 
 A command-line AI assistant supporting multiple interaction modes: basic chat, local document retrieval (RAG), web search, and combined capabilities. Built with Moonshot AI's Kimi models and FastAPI proxy for secure API key management.
