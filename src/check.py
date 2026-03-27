@@ -6,6 +6,8 @@ REAL_KEY_FILE_FLAG=True
 while True:
     if os.path.exists(REAL_KEY_FILE) and REAL_KEY_FILE_FLAG:
         PASSWD=open(REAL_KEY_FILE).readline().rstrip()
+    elif os.path.exists(PROXY_KEY_FILE) and REAL_KEY_FILE_FLAG:
+        PASSWD=open(PROXY_KEY_FILE).readline().rstrip()
     else:
         PASSWD=getpass_star('ai-key: ')
         if PASSWD=='q':
