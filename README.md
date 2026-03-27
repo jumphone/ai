@@ -114,6 +114,8 @@ bin/ai.py usetmp
 3. 使用"cp ./*.txt  ~/.ai/database/"，同样的道理，直接复制粘贴引号里的内容。
 4. 输入"ragindex"，有可能报错，不用管，如果报错就再运行一次，直到显示finished。
 5. 用"air"提问就是检索数据库再回复了。
+
+#. 如果只有txt文档，就不用运行"dirpdf2txt ./"了，直接"cp ./*.txt  ~/.ai/database/"然后接4、5步。
 ```
 
 ### RAG Mode (Local Documents)
