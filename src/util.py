@@ -1,5 +1,5 @@
-from .check import *
 from .rag import *
+from .check import *
 
 
 def loadBKG():
