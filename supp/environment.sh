@@ -13,5 +13,10 @@ ${PYTHON_BIN_PATH}pip3 install -r docs/requirements.txt --no-index --find-links=
 ${PYTHON_BIN_PATH}pip3 install -r docs/requirements.txt
 !
 
-${PYTHON_BIN_PATH}pip3 list > docs/pypack.md
-${PYTHON_BIN_PATH}pip3 freeze > docs/requirements.txt
+#${PYTHON_BIN_PATH}pip3 list > docs/pypack.md
+#${PYTHON_BIN_PATH}pip3 freeze > docs/requirements.txt
+
+
+${PYTHON_BIN_PATH}pip3 download -r docs/requirements.txt -d /home/toolkit/tools/ai_local_src/pip_packages
+
+

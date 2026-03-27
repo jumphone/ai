@@ -103,6 +103,17 @@ bin/ai.py document.txt "Summarize this"
 bin/ai.py usetmp
 ```
 
+### RAG 使用新手教程
+
+```
+0. 至少使用一次"ai"，这样就能初始化ai资源文件夹了。
+1. 将PDF文件上传到Linux服务器的一个新建空白文件夹里（必须是空白的，好操作）。
+2. 使用"cd"命令进入该文件夹，然后输入"dirpdf2txt ./" ，直接复制粘贴引号内的内容就不会错。
+3. 使用"cp ./*.txt  ~/.ai/database/"，同样的道理，直接复制粘贴引号里的内容。
+4. 输入"ragindex"，有可能报错，不用管，如果报错就再运行一次，直到显示finished。
+5. 用"air"提问就是检索数据库再回复了。
+```
+
 ### RAG Mode (Local Documents)
 
 ```bash
