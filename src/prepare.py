@@ -73,10 +73,10 @@ RAG_KEYWORD_PROMPT='''
 RAG_CHECK_PROMPT='''
 ---
 
-任务：判断 <Retrieval_Content> 中是否包含与 <Retrieval_Keywords> 直接相关的【事实性信息】。
+任务：判断 <Retrieval_Content> 中是否包含与 <Retrieval_Keywords> 相关的【事实性信息】。
 
 规则：
-1. 若【无】直接相关内容：严禁输出任何多余文字，只需返回单单词 "No"；
+1. 若【无】相关内容：严禁输出任何多余文字，只需返回单单词 "No"；
 2. 若【有】相关内容：请原封不动提取相关片段（严禁改动文字），必须保留其对应的 "file_path" 和 "chunk_idx"；
 3. 严禁任何解释、开头语或引号。
 '''
