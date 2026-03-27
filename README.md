@@ -265,6 +265,10 @@ RAG_SRC_VECTOR = '~/.ai/vectorstore/'
 SEARCH_MODEL_PATH = '/home/toolkit/tools/ai_local_src/models/multilingual-model'
 ```
 
+You can download the "multilingual-model" from Baidu Cloud Disk:
+
+https://pan.baidu.com/s/1EnD5oFqJ7-mj2cr5NhJFMw?pwd=biuh
+
 ---
 
 ## Troubleshooting
