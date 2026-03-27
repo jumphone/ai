@@ -203,7 +203,7 @@ def chat(messages) -> Choice:
 
 
 
-def getResult_web(messages, verbose=True):
+def getResult_web(messages, verbose=True, printout=True):
     if verbose:
         print_cn("WEB | checking ...\n")
     finish_reason = None
@@ -211,12 +211,12 @@ def getResult_web(messages, verbose=True):
         choice = chat(messages)
         finish_reason = choice.finish_reason
         if finish_reason == "tool_calls":  # <-- 判断当前返回内容是否包含 tool_calls
-            messages.append(choice.message)  # <-- 我们将 Kimi 大模型返回给我们的 assistant 消息也添加到上下文中，以便于下次请求时 Kimi 大模型能理解我们>的诉求
+            if verbose:print_cn("WEB | searching internet ...\n")
+            messages.append(choice.message)  # <-- 我们将 Kimi 大模型返回给我们的 assistant 消息也添加到上下文中，以便于下次请求时 Kimi 大模型能理解我们的诉求
             for tool_call in choice.message.tool_calls:  # <-- tool_calls 可能是多个，因此我们使用循环逐个执行
                 tool_call_name = tool_call.function.name
-                tool_call_arguments = json.loads(tool_call.function.arguments)  # <-- arguments 是序列化后的 JSON Object，我们需要使用 json.loads 反序列>化一下
+                tool_call_arguments = json.loads(tool_call.function.arguments)  # <-- arguments 是序列化后的 JSON Object，我们需要使用 json.loads 反序列化一下
                 if tool_call_name == "$web_search":
-                    if verbose:print_cn("WEB | searching internet ...\n")
                     tool_result = search_impl(tool_call_arguments)
                 else:
                     tool_result = f"Error: unable to find tool by name '{tool_call_name}'"
@@ -230,13 +230,15 @@ def getResult_web(messages, verbose=True):
                     "name": tool_call_name,
                     "content": json.dumps(tool_result),  # <-- 我们约定使用字符串格式向 Kimi 大模型提交工具调用结果，因此在这里使用 json.dumps 将执行结果序列化成字符串
                 })
+ 
     result=choice.message.content
     if verbose:print_cn('-'*30+'\n\n')
-    if verbose:
-        print_cn(result)
-    else:
-        print_cn_all(result)
-    print('')
+    if printout:
+        if verbose:
+            print_cn(result)
+        else:
+            print_cn_all(result)
+        print('')
     return(result)
 
 
@@ -360,9 +362,8 @@ def retrieve_rag(new_messages, doublecheck=True, verbose=True):
 
 def search_web(messages, verbose=True):
 
-    result=getResult_web(messages, verbose)
+    result=getResult_web(messages, verbose, printout=False)
     
-    if verbose:print_cn('-'*20+'\n')
     messages[0]['content'] =f'''
         <Answers_After_Web_Search>
         {result}
