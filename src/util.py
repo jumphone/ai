@@ -143,13 +143,14 @@ def getResult(messages, verbose=True):
         )
     result=''
     for chunk in stream:
-        delta = chunk.choices[0].delta 
-        if delta.content:
-            if verbose:
-                print_cn(delta.content)
-            else:
-                print_cn_all(delta.content)
-            result=result+delta.content
+        if chunk.choices and chunk.choices[0].delta.content:
+            delta = chunk.choices[0].delta 
+            if delta.content:
+                if verbose:
+                    print_cn(delta.content)
+                else:
+                    print_cn_all(delta.content)
+                result=result+delta.content
     print('')
     return(result)
 
@@ -358,33 +359,8 @@ def retrieve_rag(new_messages, doublecheck=True, verbose=True):
 
 
 def search_web(messages, verbose=True):
-    if verbose:
-        print_cn("WEB | checking ...\n")
-    finish_reason = None
-    while finish_reason is None or finish_reason == "tool_calls":
-        choice = chat(messages)
-        finish_reason = choice.finish_reason
-        if finish_reason == "tool_calls":  # <-- 判断当前返回内容是否包含 tool_calls
-            messages.append(choice.message)  # <-- 我们将 Kimi 大模型返回给我们的 assistant 消息也添加到上下文中，以便于下次请求时 Kimi 大模型能理解我们>的诉求
-            for tool_call in choice.message.tool_calls:  # <-- tool_calls 可能是多个，因此我们使用循环逐个执行
-                tool_call_name = tool_call.function.name
-                tool_call_arguments = json.loads(tool_call.function.arguments)  # <-- arguments 是序列化后的 JSON Object，我们需要使用 json.loads 反序列>化一下
-                if tool_call_name == "$web_search":
-                    if verbose:print_cn("WEB | searching internet ...\n")
-                    tool_result = search_impl(tool_call_arguments)
-                else:
-                    tool_result = f"Error: unable to find tool by name '{tool_call_name}'"
 
-                # 使用函数执行结果构造一个 role=tool 的 message，以此来向模型展示工具调用的结果；
-                # 注意，我们需要在 message 中提供 tool_call_id 和 name 字段，以便 Kimi 大模型
-                # 能正确匹配到对应的 tool_call。
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "name": tool_call_name,
-                    "content": json.dumps(tool_result),  # <-- 我们约定使用字符串格式向 Kimi 大模型提交工具调用结果，因此在这里使用 json.dumps 将执行结果序列化成字符串
-                })
-    result=choice.message.content
+    result=getResult_web(messages, verbose)
     
     if verbose:print_cn('-'*20+'\n')
     messages[0]['content'] =f'''
