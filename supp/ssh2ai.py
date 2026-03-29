@@ -14,10 +14,10 @@ while True:
             print(file_content)
             os.remove(file_path)   
             print('-'*30) 
-            sp.Popen('/bin/aiw "'+file_content+'"',shell=True).wait()
+            sp.Popen(['/bin/aiw', file_content]).wait()
             print('-'*30) 
-        except:
-            pass
+        except Exception as e:
+            print("ERROR:", e)
     time.sleep(1)    
 
 
