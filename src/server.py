@@ -73,6 +73,27 @@ async def proxy(request: Request, path: str):
         timeout=60.0
     )
 
+    # 6. 构造返回 (简化生成器，移除服务端打印逻辑)
+    async def content_generator():
+        # 直接转发字节流，不做任何解析和打印
+        async for chunk in resp.aiter_bytes():
+            yield chunk
+
+    # 7. 构造返回 Headers (过滤掉会导致解析错误的 header)
+    excluded_full_headers = ["content-encoding", "transfer-encoding", "content-length"]
+    resp_headers = {
+        k: v for k, v in resp.headers.items() 
+        if k.lower() not in excluded_full_headers
+    }
+
+    return StreamingResponse(
+        content_generator(), # 现在它只负责安静地转发数据
+        status_code=resp.status_code,
+        headers=resp_headers,
+        media_type=resp.headers.get("content-type")
+    )
+
+    '''
     # 6. 构造返回 Headers (过滤掉会导致解析错误的 header)
     async def content_generator():
         print("Response:")
@@ -108,3 +129,4 @@ async def proxy(request: Request, path: str):
         headers=resp_headers,
         media_type=resp.headers.get("content-type")
     )
+    '''
