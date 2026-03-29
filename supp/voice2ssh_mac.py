@@ -6,7 +6,7 @@ LINUX_PORT = 13579
 REMOTE_OUTPUT_FILE = "/home/media/my_voice.txt"
 REMOTE_OUTPUT_FILE_TMP = "/home/media/my_voice_tmp.txt"
 SAMPLERATE = 16000
-MODEL_PATH = "./turbo/turbo_model"        # 推荐改为 "small" 或 "turbo" 以获得极高准确率
+MODEL_PATH = "/Users/zhangfeng/Documents/models/turbo/turbo_model"        # 推荐改为 "small" 或 "turbo" 以获得极高准确率
 INITIAL_PROMPT = "以下对话中英文都有"
 BEAM_SIZE=5
 MIN_CUT=0.001
@@ -51,7 +51,7 @@ def send_to_linux(text):
         with sftp.open(REMOTE_OUTPUT_FILE_TMP, "w") as f:
             f.write(text.strip() + "\n")
         print(f"Successfully sent")
-        print("Hold [Right Command] to Record")
+        print("Press [Right Command] to Record")
     except Exception as e:
         print(f"Error: {e}")
 
@@ -110,14 +110,20 @@ def on_press(key):
         if not is_recording:
             with lock: audio_buffer = []
             is_recording = True
-            print("Please speak (release Command to finish)", end='\n')
+            #print("Please speak (release Command to finish)", end='\n')
+            print("Please speak (press Right Command to finish)", end='\n')
+        else:
+            is_recording = False
+            print("Processing...")
+            threading.Thread(target=process_audio).start()
 
 def on_release(key):
-    global is_recording
-    if key == keyboard.Key.cmd_r:
-        is_recording = False
-        print("Processing...          ", end='\n')
-        threading.Thread(target=process_audio).start()
+    pass
+    #global is_recording
+    #if key == keyboard.Key.cmd_r:
+    #    is_recording = False
+    #    print("Processing...          ", end='\n')
+    #    threading.Thread(target=process_audio).start()
     #elif key == keyboard.Key.esc:
     #    print("\n quit...")
     #    return False
@@ -133,7 +139,7 @@ stream = sd.InputStream(
 
 with stream:
     print("Microphone is on (16kHz)")
-    print("Hold [Right Command] to Record")
+    print("Press [Right Command] to Record")
     
     # Mac 上监听非字符键通常不需要 suppress=True，避免了复杂的权限问题
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
