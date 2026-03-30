@@ -6,7 +6,8 @@ def loadBKG():
     bkg_messages=[]
     if(BKG_USE==True):
         bkg_content=open(BKG_FILE, 'r', encoding='utf-8', errors='ignore').read()
-        bkg_messages.append({'role':'system','content':bkg_content})
+        if bkg_content.strip()!='':
+            bkg_messages.append({'role':'system','content':bkg_content})
         bkg_messages.append({'role':'system','content':'现在的准确日期和时间是:'+TIMESTAMP})
     return(bkg_messages)
 
@@ -232,7 +233,7 @@ def getResult_web(messages, verbose=True, printout=True):
                 })
  
     result=choice.message.content
-    if verbose:print_cn('-'*30+'\n\n')
+    if verbose:print_cn(DASH_LINE+'\n\n')
     if printout:
         if verbose:
             print_cn(result)
@@ -355,7 +356,7 @@ def retrieve_rag(new_messages, doublecheck=True, verbose=True):
                 </User_Message>
                 """ + RAG_ANSWER_PROMPT
             new_messages[0]['content'] = update_content
-    if verbose:print_cn('-'*30+'\n\n')
+    if verbose:print_cn(DASH_LINE+'\n\n')
     return new_messages
 
 

@@ -6,6 +6,9 @@ if not os.path.exists(AI_FOLDER):
     os.makedirs(AI_FOLDER)
     os.chmod(AI_FOLDER, 0o700)
 
+# BASIC
+DASH_LINE='-'*50
+
 ##### BKG #######################
 BKG_FILE=AI_FOLDER+'bkg.txt'
 DEFAULT_BKG="""

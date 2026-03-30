@@ -3,8 +3,8 @@ LINUX_HOST =
 LINUX_USER = 
 LINUX_PASS = 
 LINUX_PORT = 
-REMOTE_OUTPUT_FILE = "/home/media/my_voice.txt"
-REMOTE_OUTPUT_FILE_TMP = "/home/media/my_voice_tmp.txt"
+REMOTE_OUTPUT_LOG = "/home/media/voice_log.txt"
+REMOTE_OUTPUT_DIR = "/home/media/voice_dir/"
 SAMPLERATE = 16000
 MODEL_PATH = "/Users/zhangfeng/Documents/models/turbo/turbo_model"        # 推荐改为 "small" 或 "turbo" 以获得极高准确率
 INITIAL_PROMPT = "以下对话中英文都有"
@@ -23,7 +23,7 @@ from faster_whisper import WhisperModel
 import paramiko
 import threading
 from pynput import keyboard
-import os
+import os,stat
 # ====================================================
 is_processing = False 
 last_action_time = 0
@@ -34,6 +34,10 @@ def get_timestamp():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     output='['+str(timestamp)+'] '
     return(output)
+
+def clean_timestamp():
+    timestamp = str(datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    return(timestamp)
 
 def print_ts(text):
     output=get_timestamp()+text
@@ -58,19 +62,26 @@ try:
 except Exception as e:
     print_ts(f"SSH error: {e}"); exit()
 
+
 def send_to_linux(text):
     try:
         if text.strip() !='':
-            with sftp.open(REMOTE_OUTPUT_FILE, "a") as f:
-                f.write(get_timestamp()+text.strip() + "\n")
-            with sftp.open(REMOTE_OUTPUT_FILE_TMP, "w") as f:
+            this_up_file= clean_timestamp()
+            with sftp.open(REMOTE_OUTPUT_LOG, "a") as f:
+                f.write(this_up_file+' | '+text.strip() +"\n")
+            try:
+                sftp.mkdir(REMOTE_OUTPUT_DIR) 
+            except Exception as e:
+                pass
+            with sftp.open(REMOTE_OUTPUT_DIR+'/'+this_up_file, "w") as f:
                 f.write(text.strip() + "\n")
-            print_ts(f"Successfully sent")
+            print_ts(f"Successfully sent, "+this_up_file)
         else:
             print_ts('Empty')
     except Exception as e:
         print_ts(f"Error: {e}")
 
+            
 def audio_callback(indata, frames, time_, status):
     global is_recording, audio_buffer
     if is_recording:
@@ -88,7 +99,7 @@ def process_audio():
     
     # 静音过滤阈值
     if np.abs(audio).mean() < MIN_CUT:
-        print_ts("Signal too weak, skipped.     ")
+        print_ts("Signal too weak, skipped.")
         return
 
     print_ts("Recogonizing...")
