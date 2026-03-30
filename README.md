@@ -267,6 +267,10 @@ Configuration required in `supp/voice2ssh_mac.py`:
 - `MODEL_PATH` - Path to Faster-Whisper model
 - `REMOTE_OUTPUT_FILE` - Where to store transcriptions
 
+You can download the "turbo" from Baidu Cloud Disk:
+
+https://pan.baidu.com/s/1l_GcVR1nBLaQfF_UodYjyw?pwd=biuh
+
 ---
 
 ## Configuration Reference
