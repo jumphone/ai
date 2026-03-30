@@ -1,10 +1,12 @@
 # AI Assistant Tool
 
-**Date:** 2026.03.26  
-**Author:** https://github.com/jumphone/  
+**Date:** 2026.03.30
+
+**Author:** ZF, https://github.com/jumphone/
+
 **Python:** 3.12+ required
 
-A command-line AI assistant supporting multiple interaction modes: basic chat, local document retrieval (RAG), web search, and combined capabilities. Built with Moonshot AI's Kimi models and FastAPI proxy for secure API key management.
+A command-line AI assistant supporting multiple interaction modes: basic chat, local document retrieval (RAG), web search, and combined capabilities. Built with Moonshot AI's Kimi models and FastAPI proxy for secure API key management. Includes optional voice input support for macOS.
 
 ---
 
@@ -26,14 +28,14 @@ A command-line AI assistant supporting multiple interaction modes: basic chat, l
 
 ```bash
 # Clone repository
-git clone <repository-url>
-cd ai-assistant
+git clone https://github.com/jumphone/ai.git
+cd ai
 
 # Install Python 3.12 dependencies
 pip install -r docs/requirements.txt
 
 # Verify installation
-python3 bin/ai.py --help  # Will prompt for API key on first run
+python3 bin/ai.py "who are you"  # Will prompt for API key on first run
 ```
 
 ---
@@ -77,13 +79,13 @@ The tool creates `~/.ai/` with 700 permissions:
 Default system prompt (`src/prepare.py:DEFAULT_BKG`):
 
 ```
-1. 只陈述真实的内容，不猜测、不编造。
-2. 不知道、不确定、没有把握的内容，直接说不知道，不要编造。
-3. 不虚构人名、地名、时间、数据、论文、文献、标题、作者、来源。
-4. 不夸张、不脑补、不美化。
-5. 如果需要引用，只引用真实存在的内容，不编造引用。
-6. 回答直接、无冗余的语气。
-7. 一定要回答，不可靠也给一个最可靠的结论。
+1. Only state factual content, do not guess or fabricate.
+2. For unknown, uncertain, or unconfirmed content, directly state "I don't know", do not invent.
+3. Do not fabricate names of people, places, times, data, papers, literature, titles, authors, or sources.
+4. Do not exaggerate, imagine, or embellish.
+5. If citation is needed, only cite content that actually exists, do not fabricate citations.
+6. Respond directly without redundant tone.
+7. Must answer, provide the most reliable conclusion even if uncertain.
 ```
 
 ---
@@ -101,6 +103,19 @@ bin/ai.py document.txt "Summarize this"
 
 # Enable conversation history
 bin/ai.py usetmp
+```
+
+### RAG Quick Start Guide
+
+```
+0. Run "ai" at least once to initialize the ai resource folder.
+1. Upload all PDF files (ending with lowercase ".pdf") to a new empty folder on your Linux server.
+2. Use the "cd" command to enter that folder, then type "dirpdf2txt ./" (copy-paste the quoted content to avoid errors).
+3. Use "cp ./*.txt ~/.ai/database/" (same principle, copy-paste the quoted content).
+4. Type "ragindex". It may report errors, ignore them. If it errors, run again until it shows "finished".
+5. Use "air" to ask questions that will search the database before responding.
+
+# Note: If you only have txt documents, skip step 2. Run "cp ./*.txt ~/.ai/database/" then proceed to steps 4-5.
 ```
 
 ### RAG Mode (Local Documents)
@@ -172,14 +187,14 @@ bash server.sh
 
 ### RAG Pipeline
 
-1. **Keyword Generation** (`RAG_KEYWORD_MODEL`): Extract search intent
-2. **Vector Retrieval**: FAISS similarity search (`VECTOR_K=10`)
-3. **Double-Check** (`RAG_CHECK_MODEL`): Verify relevance (temperature=0.0)
-4. **Answer Generation**: Combine references with user query
+1. **Keyword Generation** (`RAG_KEYWORD_MODEL`): Extract search intent from user query
+2. **Vector Retrieval**: FAISS similarity search (`VECTOR_K=10` chunks)
+3. **Double-Check** (`RAG_CHECK_MODEL`): Verify relevance with temperature=0.0
+4. **Answer Generation**: Combine verified references with user query using `RAG_ANSWER_PROMPT`
 
 ### Web Search Integration
 
-Uses Moonshot's builtin `$web_search` tool (`src/util.py:chat()`). The tool is declared in each request and handles tool calls automatically.
+Uses Moonshot's builtin `$web_search` tool (`src/util.py:chat()`). The tool is declared in each request and handles tool calls automatically through a loop that continues until `finish_reason` is not "tool_calls".
 
 ---
 
@@ -211,9 +226,13 @@ Uses Moonshot's builtin `$web_search` tool (`src/util.py:chat()`). The tool is d
 │   ├── rag.py               # FAISS and embeddings
 │   ├── util.py              # Main utility functions
 │   └── server.py            # FastAPI proxy
+├── supp/                     # Supplementary tools
+│   ├── voice2ssh_mac.py     # macOS voice input
+│   └── ssh2ai.py            # Voice processing bridge
 ├── docs/
 │   └── requirements.txt     # Python dependencies
-└── server.sh                # Proxy startup script
+├── server.sh                # Proxy startup script
+└── README.md                # This file
 ```
 
 ---
@@ -231,8 +250,22 @@ Uses Moonshot's builtin `$web_search` tool (`src/util.py:chat()`). The tool is d
 - **Endpoint**: `http://127.0.0.1:5260/v1`
 - **Validation**: Checks token against `PROXY_API_KEY` list
 - **Forwarding**: Injects real API key, strips sensitive headers
-- **Logging**: Prints request bodies and streaming responses to stdout
+- **Logging**: Prints request bodies to stdout (configurable)
 - **CORS**: Not configured (intended for local use only)
+
+---
+
+## Voice Input (macOS)
+
+The tool includes optional voice input support for macOS:
+
+1. **voice2ssh_mac.py**: Records audio using right Command key, transcribes with Faster-Whisper, sends text to Linux server via SSH
+2. **ssh2ai.py**: Monitors for transcribed text on server and triggers `bin/ai` commands
+
+Configuration required in `supp/voice2ssh_mac.py`:
+- `LINUX_HOST`, `LINUX_USER`, `LINUX_PASS`, `LINUX_PORT`
+- `MODEL_PATH` - Path to Faster-Whisper model
+- `REMOTE_OUTPUT_FILE` - Where to store transcriptions
 
 ---
 
@@ -241,9 +274,20 @@ Uses Moonshot's builtin `$web_search` tool (`src/util.py:chat()`). The tool is d
 ### Models (`src/config.py`)
 
 ```python
-BASIC_MODEL = 'kimi-k2-thinking-turbo'  # Default chat model
-RAG_KEYWORD_MODEL = 'kimi-k2-turbo-preview'  # Search intent extraction
-RAG_CHECK_MODEL = 'kimi-k2-turbo-preview'  # Relevance verification
+MODEL_LIST = [
+  'kimi-k2-thinking-turbo',
+  'kimi-k2-turbo-preview',
+  'kimi-k2-0905-preview',
+  'kimi-k2-thinking',
+  'kimi-latest',
+  'moonshot-v1-auto',
+  'moonshot-v1-8k',
+  'moonshot-v1-32k',
+  'moonshot-v1-128k'
+]
+BASIC_MODEL = MODEL_LIST[0]
+RAG_KEYWORD_MODEL = MODEL_LIST[1]
+RAG_CHECK_MODEL = MODEL_LIST[1]
 ```
 
 ### RAG Parameters
@@ -265,6 +309,10 @@ RAG_SRC_VECTOR = '~/.ai/vectorstore/'
 SEARCH_MODEL_PATH = '/home/toolkit/tools/ai_local_src/models/multilingual-model'
 ```
 
+You can download the "multilingual-model" from Baidu Cloud Disk:
+
+https://pan.baidu.com/s/1EnD5oFqJ7-mj2cr5NhJFMw?pwd=biuh
+
 ---
 
 ## Troubleshooting
@@ -282,7 +330,7 @@ The tool suppresses this warning via `warnings.filterwarnings()` and `sys.stderr
 
 ### RAG Returns No Results
 
-1. Confirm documents in `~/.ai/database/` (`.txt` or `.md`)
+1. Confirm documents in `~/.ai/database/` (`.txt` or `.md` only)
 2. Rebuild index: `bin/ragindex.py`
 3. Check embedding model path: `SEARCH_MODEL_PATH`
 4. Verify `VECTOR_K` value isn't too small
@@ -298,6 +346,7 @@ The tool suppresses this warning via `warnings.filterwarnings()` and `sys.stderr
 1. Ensure port 5260 is available: `lsof -i :5260`
 2. Check `PROXY_KEY_FILE` exists and contains valid token
 3. Review server logs for request/response details
+4. Verify `REAL_KEY_FILE` contains valid Moonshot API key
 
 ---
 
@@ -305,7 +354,7 @@ The tool suppresses this warning via `warnings.filterwarnings()` and `sys.stderr
 
 ### Adding New Commands
 
-1. Create `bin/newcmd.py` with shebang and import
+1. Create `bin/newcmd.py` with shebang and import pattern
 2. Add `mains/main_newcmd.py` with `run()` function
 3. Implement logic in `src/util.py` or new module
 4. Update feature matrix in this README
@@ -336,4 +385,3 @@ See `docs/requirements.txt` for complete list. Key dependencies:
 CUDA libraries are optional and included for GPU acceleration support.
 
 ---
-

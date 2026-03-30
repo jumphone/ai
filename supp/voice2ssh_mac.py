@@ -1,8 +1,8 @@
 # ====================== 配置 ======================
-LINUX_HOST = "116.233.75.237"
-LINUX_USER = "media"
-LINUX_PASS = "media_bioinfo_biuh"
-LINUX_PORT = 13579
+LINUX_HOST = 
+LINUX_USER = 
+LINUX_PASS = 
+LINUX_PORT = 
 REMOTE_OUTPUT_FILE = "/home/media/my_voice.txt"
 REMOTE_OUTPUT_FILE_TMP = "/home/media/my_voice_tmp.txt"
 SAMPLERATE = 16000

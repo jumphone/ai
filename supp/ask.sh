@@ -9,4 +9,5 @@
             src/check.py src/config.py src/safe.py \
             src/prepare.py src/rag.py src/util.py \
             src/server.py server.sh README.md \
+            supp/voice2ssh_mac.py supp/ssh2ai.py \
             "$@"

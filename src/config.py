@@ -20,7 +20,7 @@ MODEL_LIST=[
   'moonshot-v1-32k',
   'moonshot-v1-128k'
   ]
-BASIC_MODEL=MODEL_LIST[1]
+BASIC_MODEL=MODEL_LIST[0]
 
 
 ##### AI FOLDER ###################
