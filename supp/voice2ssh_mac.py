@@ -12,9 +12,11 @@ BEAM_SIZE=5
 MIN_CUT=0.001
 LANG='zh'
 TASK='transcribe'
+DEBOUNCE_TIME = 0.5
 
 # ===================================================
 from datetime import datetime
+import time
 import sounddevice as sd
 import numpy as np
 from faster_whisper import WhisperModel
@@ -22,10 +24,23 @@ import paramiko
 import threading
 from pynput import keyboard
 import os
-
+# ====================================================
+is_processing = False 
+last_action_time = 0
 # ====================================================
 
-print(f"loading Faster-Whisper ...")
+
+def get_timestamp():
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    output='['+str(timestamp)+'] '
+    return(output)
+
+def print_ts(text):
+    output=get_timestamp()+text
+    print(output)
+
+
+print(get_timestamp()+f"loading Faster-Whisper ...")
 # Mac 建议使用 cpu + int8，cpu_threads 建议设为核心数
 model = WhisperModel(MODEL_PATH, device="cpu", compute_type="int8", cpu_threads=8)
 
@@ -39,21 +54,22 @@ try:
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname=LINUX_HOST, username=LINUX_USER, password=LINUX_PASS, port=LINUX_PORT)
     sftp = ssh.open_sftp()
-    print("SSH connected")
+    print_ts("SSH connected")
 except Exception as e:
-    print(f"SSH error: {e}"); exit()
+    print_ts(f"SSH error: {e}"); exit()
 
 def send_to_linux(text):
     try:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with sftp.open(REMOTE_OUTPUT_FILE, "a") as f:
-            f.write('['+str(timestamp)+'] '+text.strip() + "\n")
-        with sftp.open(REMOTE_OUTPUT_FILE_TMP, "w") as f:
-            f.write(text.strip() + "\n")
-        print(f"Successfully sent")
-        print("Press [Right Command] to Record")
+        if text.strip() !='':
+            with sftp.open(REMOTE_OUTPUT_FILE, "a") as f:
+                f.write(get_timestamp()+text.strip() + "\n")
+            with sftp.open(REMOTE_OUTPUT_FILE_TMP, "w") as f:
+                f.write(text.strip() + "\n")
+            print_ts(f"Successfully sent")
+        else:
+            print_ts('Empty')
     except Exception as e:
-        print(f"Error: {e}")
+        print_ts(f"Error: {e}")
 
 def audio_callback(indata, frames, time_, status):
     global is_recording, audio_buffer
@@ -72,10 +88,10 @@ def process_audio():
     
     # 静音过滤阈值
     if np.abs(audio).mean() < MIN_CUT:
-        print("Signal too weak, skipped.     ", end='\n')
+        print_ts("Signal too weak, skipped.     ")
         return
 
-    print("Recogonizing...", end='\n')
+    print_ts("Recogonizing...")
     try:
         segments, info = model.transcribe(
             audio, 
@@ -90,39 +106,57 @@ def process_audio():
         text = "".join([s.text for s in segments]).strip()
         
         if text:
-            #print(f"Result: {text}      ")
-            print(f"Result: ")
-            print()
-            print(text)
-            print()
+            print_ts("Recognized: "+text)
             send_to_linux(text)
         else:
-            print("No words detected      ")
+            print(get_timestamp()+"No words detected")
     except Exception as e:
-        print(f"Error: {e}")
+        print_ts(f"Error: {e}")
 
 def on_press(key):
-    global is_recording, audio_buffer
-    # 改为使用左 Command 键 (cmd_l)
-    #if key == keyboard.Key.cmd_l:
-    # 改为使用右 Command 键 (cmd_r)
+    global is_recording, audio_buffer, is_processing, last_action_time   
     if key == keyboard.Key.cmd_r:
+        current_time = time.time()
+        
+        # --- 场景1：防抖过滤（防止连点） ---
+        if current_time - last_action_time < DEBOUNCE_TIME:
+            return # 间隔太短，忽略本次按键
+
+        # --- 场景2：识别中保护 ---
+        if is_processing:
+            print_ts("Still processing, please wait...")
+            return
+
+        last_action_time = current_time # 更新最后操作时间
+
         if not is_recording:
+            # 开始录音
             with lock: audio_buffer = []
             is_recording = True
-            #print("Please speak (release Command to finish)", end='\n')
-            print("Please speak (press Right Command to finish)", end='\n')
+            print_ts("Recording... (Press Right Command to stop)")
         else:
+            # 停止录音并开始识别
             is_recording = False
-            print("Processing...")
-            threading.Thread(target=process_audio).start()
+            is_processing = True # 进入识别状态锁
+            print_ts("Processing...")
+            threading.Thread(target=wrapped_process_audio).start()
+
+def wrapped_process_audio():
+    global is_processing
+    try:
+        process_audio()
+    finally:
+        # 无论成功还是报错，最后都要释放锁
+        print_ts("Ready for next command.")
+        print_ts("Press [Right Command] to Record")
+        is_processing = False
 
 def on_release(key):
     pass
     #global is_recording
     #if key == keyboard.Key.cmd_r:
     #    is_recording = False
-    #    print("Processing...          ", end='\n')
+    #    print(get_timestamp()+"Processing...", end='\n')
     #    threading.Thread(target=process_audio).start()
     #elif key == keyboard.Key.esc:
     #    print("\n quit...")
@@ -138,8 +172,8 @@ stream = sd.InputStream(
 )
 
 with stream:
-    print("Microphone is on (16kHz)")
-    print("Press [Right Command] to Record")
+    print_ts("Microphone is on (16kHz)")
+    print_ts("Press [Right Command] to Record")
     
     # Mac 上监听非字符键通常不需要 suppress=True，避免了复杂的权限问题
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
